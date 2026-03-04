@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply text-gray-900 antialiased;
+  }
+}
+
+@layer components {
+  .category-icon {
+    @apply w-12 h-12 stroke-[1.5];
+  }
+  
+  .modal-overlay {
+    @apply fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4;
+  }
+  
+  .modal-content {
+    @apply bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-auto animate-slide-up;
+  }
+  
+  .lightbox-overlay {
+    @apply fixed inset-0 bg-black z-[100] flex items-center justify-center;
+  }
+  
+  .price-badge {
+    @apply inline-block px-2 py-1 bg-primary text-white rounded text-sm font-bold;
+  }
+  
+  .closed-badge {
+    @apply inline-flex items-center gap-1 px-3 py-1 bg-closed text-white rounded-full text-sm font-medium;
+  }
+  
+  .admin-card {
+    @apply bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow;
+  }
+  
+  .admin-input {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+  }
+  
+  .admin-button {
+    @apply px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors font-medium;
+  }
+  
+  .admin-button-secondary {
+    @apply px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors font-medium;
+  }
+}
