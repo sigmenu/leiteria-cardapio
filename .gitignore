@@ -10,11 +10,7 @@ cardapio.db
 database.sqlite
 backend/cardapio.db
 
-# Environment variables
-.env
-.env.local
-.env.production
-.env.development
+
 
 # Production builds
 dist/
