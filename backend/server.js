@@ -23,7 +23,7 @@ app.use((req, res, next) => {
 });
 
 // Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -138,6 +138,33 @@ async function startServer() {
         FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
       )
     `);
+    // Add missing columns if they don't exist
+    const alterStatements = [
+      `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS banner_mode VARCHAR(20) DEFAULT 'color'`,
+      `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS welcome_message_en VARCHAR(255)`,
+      `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS welcome_message_es VARCHAR(255)`,
+      `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS service_fee_text_en VARCHAR(255)`,
+      `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS service_fee_text_es VARCHAR(255)`,
+      `ALTER TABLE categories ADD COLUMN IF NOT EXISTS name_en VARCHAR(255)`,
+      `ALTER TABLE categories ADD COLUMN IF NOT EXISTS name_es VARCHAR(255)`,
+      `ALTER TABLE categories ADD COLUMN IF NOT EXISTS description_en VARCHAR(500)`,
+      `ALTER TABLE categories ADD COLUMN IF NOT EXISTS description_es VARCHAR(500)`,
+      `ALTER TABLE subcategories ADD COLUMN IF NOT EXISTS name_en VARCHAR(255)`,
+      `ALTER TABLE subcategories ADD COLUMN IF NOT EXISTS name_es VARCHAR(255)`,
+      `ALTER TABLE subcategories ADD COLUMN IF NOT EXISTS description_en VARCHAR(500)`,
+      `ALTER TABLE subcategories ADD COLUMN IF NOT EXISTS description_es VARCHAR(500)`,
+      `ALTER TABLE items ADD COLUMN IF NOT EXISTS name_en VARCHAR(255)`,
+      `ALTER TABLE items ADD COLUMN IF NOT EXISTS name_es VARCHAR(255)`,
+      `ALTER TABLE items ADD COLUMN IF NOT EXISTS description_en TEXT`,
+      `ALTER TABLE items ADD COLUMN IF NOT EXISTS description_es TEXT`,
+      `ALTER TABLE items ADD COLUMN IF NOT EXISTS has_options BOOLEAN DEFAULT 0`,
+      `ALTER TABLE item_prices ADD COLUMN IF NOT EXISTS label_en VARCHAR(255)`,
+      `ALTER TABLE item_prices ADD COLUMN IF NOT EXISTS label_es VARCHAR(255)`
+    ];
+    for (const stmt of alterStatements) {
+      await db.execute(stmt);
+    }
+
     console.log('✅ Banco de dados pronto');
   } catch (err) {
     console.error('❌ Erro na migration:', err);
