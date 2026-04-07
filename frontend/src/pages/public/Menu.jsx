@@ -79,7 +79,7 @@ export default function PublicMenu() {
         {/* Banner */}
         {restaurant.banner_mode === 'full' && restaurant.banner_url ? (
           // Modo 1: Banner Inteiriço (imagem única)
-          <div className="w-full h-[120px] md:h-[180px] overflow-hidden">
+          <div className="w-full h-[140px] md:h-[180px] overflow-hidden">
             <img 
               src={restaurant.banner_url} 
               alt="Banner" 
