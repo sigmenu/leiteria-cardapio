@@ -23,7 +23,7 @@ app.use((req, res, next) => {
 });
 
 // Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -161,6 +161,29 @@ async function startServer() {
       `ALTER TABLE item_prices ADD COLUMN IF NOT EXISTS label_en VARCHAR(255)`,
       `ALTER TABLE item_prices ADD COLUMN IF NOT EXISTS label_es VARCHAR(255)`
     ];
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS restaurant_hours (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        restaurant_id INT NOT NULL,
+        day_of_week TINYINT NOT NULL,
+        open_time TIME NULL,
+        close_time TIME NULL,
+        is_closed BOOLEAN DEFAULT FALSE,
+        sort_order TINYINT DEFAULT 0,
+        FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+      )
+    `);
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS category_day_hours (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        category_id INT NOT NULL,
+        day_of_week TINYINT NOT NULL,
+        open_time TIME NULL,
+        close_time TIME NULL,
+        is_closed BOOLEAN DEFAULT FALSE,
+        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+      )
+    `);
     for (const stmt of alterStatements) {
       await db.execute(stmt);
     }

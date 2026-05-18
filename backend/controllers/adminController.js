@@ -2,18 +2,45 @@ const db = require('../config/database');
 const fs = require('fs').promises;
 const path = require('path');
 
+// Diretório absoluto de uploads — único ponto de verdade para toda deleção de arquivo
+const UPLOADS_DIR = path.resolve(__dirname, '..', 'uploads');
+
+async function safeDeleteFile(imageUrl) {
+  if (!imageUrl || !imageUrl.startsWith('/uploads/')) return;
+  // Garante que o arquivo resolvido está DENTRO do diretório uploads (evita path traversal)
+  const resolved = path.resolve(UPLOADS_DIR, path.basename(imageUrl));
+  if (!resolved.startsWith(UPLOADS_DIR + path.sep) && resolved !== UPLOADS_DIR) return;
+  try {
+    await fs.unlink(resolved);
+  } catch {
+    // Arquivo pode já não existir — ignora silenciosamente
+  }
+}
+
 const adminController = {
   // Categories CRUD
   async getCategories(req, res) {
     try {
       const [categories] = await db.execute(
-        `SELECT * FROM categories 
-         WHERE restaurant_id = ? 
-         ORDER BY sort_order, id`,
+        `SELECT * FROM categories WHERE restaurant_id = ? ORDER BY sort_order, id`,
         [req.restaurantId]
       );
-      
-      res.json(categories);
+
+      if (categories.length === 0) return res.json([]);
+
+      const ids = categories.map(c => c.id);
+      const placeholders = ids.map(() => '?').join(',');
+      const [allHours] = await db.execute(
+        `SELECT * FROM category_day_hours WHERE category_id IN (${placeholders}) ORDER BY day_of_week`,
+        ids
+      );
+
+      const result = categories.map(c => ({
+        ...c,
+        day_hours: allHours.filter(h => h.category_id === c.id)
+      }));
+
+      res.json(result);
     } catch (error) {
       console.error('Get categories error:', error);
       res.status(500).json({ error: 'Erro ao buscar categorias' });
@@ -22,12 +49,12 @@ const adminController = {
   
   async createCategory(req, res) {
     try {
-      const { name, description, icon, opening_time, closing_time, available_days, exclude_holidays } = req.body;
-      
+      const { name, description, icon, exclude_holidays } = req.body;
+
       const [result] = await db.execute(
-        `INSERT INTO categories (restaurant_id, name, description, icon, opening_time, closing_time, available_days, exclude_holidays)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [req.restaurantId, name, description, icon, opening_time, closing_time, available_days, exclude_holidays || false]
+        `INSERT INTO categories (restaurant_id, name, description, icon, exclude_holidays)
+         VALUES (?, ?, ?, ?, ?)`,
+        [req.restaurantId, name, description, icon, exclude_holidays || false]
       );
       
       res.status(201).json({ 
@@ -43,14 +70,13 @@ const adminController = {
   async updateCategory(req, res) {
     try {
       const { id } = req.params;
-      const { name, description, icon, opening_time, closing_time, available_days, exclude_holidays, is_active } = req.body;
-      
+      const { name, description, icon, exclude_holidays, is_active } = req.body;
+
       await db.execute(
-        `UPDATE categories 
-         SET name = ?, description = ?, icon = ?, opening_time = ?, closing_time = ?, 
-             available_days = ?, exclude_holidays = ?, is_active = ?
+        `UPDATE categories
+         SET name = ?, description = ?, icon = ?, exclude_holidays = ?, is_active = ?
          WHERE id = ? AND restaurant_id = ?`,
-        [name, description, icon, opening_time, closing_time, available_days, exclude_holidays, is_active, id, req.restaurantId]
+        [name, description, icon, exclude_holidays, is_active, id, req.restaurantId]
       );
       
       res.json({ message: 'Categoria atualizada com sucesso!' });
@@ -250,21 +276,11 @@ const adminController = {
       
       if (req.file) {
         image_url = `/uploads/${req.file.filename}`;
-        
-        // Delete old image if exists
         const [items] = await db.execute(
           'SELECT image_url FROM items WHERE id = ? AND restaurant_id = ?',
           [id, req.restaurantId]
         );
-        
-        if (items[0]?.image_url) {
-          const oldImagePath = path.join(__dirname, '..', items[0].image_url);
-          try {
-            await fs.unlink(oldImagePath);
-          } catch (err) {
-            console.error('Error deleting old image:', err);
-          }
-        }
+        await safeDeleteFile(items[0]?.image_url);
       }
       
       // Update item
@@ -310,15 +326,8 @@ const adminController = {
         [id, req.restaurantId]
       );
       
-      if (items[0]?.image_url) {
-        const imagePath = path.join(__dirname, '..', items[0].image_url);
-        try {
-          await fs.unlink(imagePath);
-        } catch (err) {
-          console.error('Error deleting image:', err);
-        }
-      }
-      
+      await safeDeleteFile(items[0]?.image_url);
+
       await db.execute(
         'DELETE FROM items WHERE id = ? AND restaurant_id = ?',
         [id, req.restaurantId]
@@ -355,6 +364,93 @@ const adminController = {
     } catch (error) {
       console.error('❌ Get settings error:', error);
       res.status(500).json({ error: 'Erro ao buscar configurações' });
+    }
+  },
+
+  // Restaurant hours
+  async getRestaurantHours(req, res) {
+    try {
+      const [rows] = await db.execute(
+        'SELECT * FROM restaurant_hours WHERE restaurant_id = ? ORDER BY day_of_week, sort_order',
+        [req.restaurantId]
+      );
+      res.json(rows);
+    } catch (error) {
+      console.error('Get restaurant hours error:', error);
+      res.status(500).json({ error: 'Erro ao buscar horários' });
+    }
+  },
+
+  async saveRestaurantHours(req, res) {
+    try {
+      const { hours } = req.body;
+      await db.execute('DELETE FROM restaurant_hours WHERE restaurant_id = ?', [req.restaurantId]);
+      for (const h of (hours || [])) {
+        await db.execute(
+          'INSERT INTO restaurant_hours (restaurant_id, day_of_week, open_time, close_time, is_closed, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
+          [req.restaurantId, h.day_of_week, h.open_time || null, h.close_time || null, h.is_closed ? 1 : 0, h.sort_order || 0]
+        );
+      }
+      res.json({ message: 'Horários salvos com sucesso!' });
+    } catch (error) {
+      console.error('Save restaurant hours error:', error);
+      res.status(500).json({ error: 'Erro ao salvar horários' });
+    }
+  },
+
+  // Category day hours
+  async getCategoryHours(req, res) {
+    try {
+      const { categoryId } = req.params;
+      const [rows] = await db.execute(
+        'SELECT * FROM category_day_hours WHERE category_id = ? ORDER BY day_of_week',
+        [categoryId]
+      );
+      res.json(rows);
+    } catch (error) {
+      console.error('Get category hours error:', error);
+      res.status(500).json({ error: 'Erro ao buscar horários da categoria' });
+    }
+  },
+
+  async saveCategoryHours(req, res) {
+    try {
+      const { categoryId } = req.params;
+      const { hours } = req.body;
+      await db.execute('DELETE FROM category_day_hours WHERE category_id = ?', [categoryId]);
+      for (const h of (hours || [])) {
+        await db.execute(
+          'INSERT INTO category_day_hours (category_id, day_of_week, open_time, close_time, is_closed) VALUES (?, ?, ?, ?, ?)',
+          [categoryId, h.day_of_week, h.open_time || null, h.close_time || null, h.is_closed ? 1 : 0]
+        );
+      }
+      res.json({ message: 'Horários da categoria salvos com sucesso!' });
+    } catch (error) {
+      console.error('Save category hours error:', error);
+      res.status(500).json({ error: 'Erro ao salvar horários da categoria' });
+    }
+  },
+
+  async migrateUploads(req, res) {
+    const { password } = req.body;
+    if (password !== 't4r5') {
+      return res.status(403).json({ error: 'Senha incorreta' });
+    }
+    const rootUploads = path.resolve(__dirname, '..', '..', 'uploads');
+    try {
+      let files;
+      try { files = await fs.readdir(rootUploads); } catch { files = []; }
+      const moved = [], skipped = [];
+      for (const file of files) {
+        if (file === '.gitkeep') continue;
+        const src = path.join(rootUploads, file);
+        const dest = path.join(UPLOADS_DIR, file);
+        try { await fs.rename(src, dest); moved.push(file); }
+        catch { skipped.push(file); }
+      }
+      res.json({ moved, skipped, total: moved.length });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
     }
   },
 

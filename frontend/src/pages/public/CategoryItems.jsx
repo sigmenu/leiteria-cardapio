@@ -89,7 +89,7 @@ export default function CategoryItems() {
               )}
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {subcategory.items.map(item => (
                 <div
                   key={item.id}
@@ -115,12 +115,12 @@ export default function CategoryItems() {
                             <div key={idx} className="flex items-baseline justify-between">
                               <span className="text-sm text-gray-700">
                                 {tField(price, 'label') && <span>{tField(price, 'label')}, </span>}
-                                {price.original_price && (
+                                {parseFloat(price.original_price) > 0 && (
                                   <span className="line-through text-gray-400">
                                     {formatPrice(price.original_price)}
                                   </span>
                                 )}
-                                {price.original_price && ` ${t('for')}`}
+                                {parseFloat(price.original_price) > 0 && ` ${t('for')}`}
                               </span>
                               <span className="font-bold text-primary ml-2">
                                 {formatPrice(price.price)}
@@ -188,7 +188,7 @@ export default function CategoryItems() {
                   <div key={idx} className="flex items-baseline justify-between py-2 border-b">
                     <span className="text-gray-700">
                       {tField(price, 'label') && <span className="font-medium">{tField(price, 'label')}</span>}
-                      {price.original_price && (
+                      {parseFloat(price.original_price) > 0 && (
                         <>
                           {tField(price, 'label') && ', '}
                           <span className="line-through text-gray-400">

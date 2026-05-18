@@ -11,6 +11,7 @@ import Categories from './pages/admin/Categories'
 import Subcategories from './pages/admin/Subcategories'
 import Items from './pages/admin/Items'
 import Settings from './pages/admin/Settings'
+import Hours from './pages/admin/Hours'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -44,6 +45,7 @@ function App() {
           <Route path="/admin/categories/:categoryId/subcategories" element={<ProtectedRoute><Subcategories /></ProtectedRoute>} />
           <Route path="/admin/subcategories/:subcategoryId/items" element={<ProtectedRoute><Items /></ProtectedRoute>} />
           <Route path="/admin/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/admin/hours" element={<ProtectedRoute><Hours /></ProtectedRoute>} />
         </Routes>
         </AuthProvider>
       </LanguageProvider>

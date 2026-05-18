@@ -51,3 +51,9 @@ coverage/
 # Temporários
 *.tmp
 *.temp
+
+# Arquivos de ambiente
+.env
+.env.*
+*.env
+backend/package-lock.json

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E '\\\\.\\(jsx|js|json\\)$')",
+      "Bash(mysql *)",
+      "Bash(node --input-type=module --eval ' *)",
+      "Bash(node *)"
+    ]
+  }
+}

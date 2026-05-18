@@ -21,44 +21,74 @@ const menuController = {
       
       // Get categories with status calculation
       const [categories] = await db.execute(
-        `SELECT id, restaurant_id, name, name_en, name_es, description, description_en, description_es, 
-                icon, sort_order, opening_time, closing_time, available_days, exclude_holidays, 
+        `SELECT id, restaurant_id, name, name_en, name_es, description, description_en, description_es,
+                icon, sort_order, opening_time, closing_time, available_days, exclude_holidays,
                 is_active, created_at
-         FROM categories 
-         WHERE restaurant_id = ? AND is_active = 1 
+         FROM categories
+         WHERE restaurant_id = ? AND is_active = 1
          ORDER BY sort_order, id`,
         [restaurant.id]
       );
-      
-      // Calculate if each category is open
+
+      // Get restaurant operating hours
+      const [restaurantHours] = await db.execute(
+        'SELECT * FROM restaurant_hours WHERE restaurant_id = ? ORDER BY day_of_week, sort_order',
+        [restaurant.id]
+      );
+
+      // Get all category_day_hours for this restaurant's categories in one query
+      const categoryIds = categories.map(c => c.id);
+      let allCategoryDayHours = [];
+      if (categoryIds.length > 0) {
+        const placeholders = categoryIds.map(() => '?').join(',');
+        const [cdh] = await db.execute(
+          `SELECT * FROM category_day_hours WHERE category_id IN (${placeholders})`,
+          categoryIds
+        );
+        allCategoryDayHours = cdh;
+      }
+
+      // Calculate current time/day (UTC-3 offset for Brazil)
       const now = new Date();
-      const currentTime = now.toTimeString().slice(0, 5);
-      const currentDay = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'][now.getDay()];
-      
+      const brazilOffset = -3 * 60;
+      const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+      const brazilNow = new Date(utcMs + brazilOffset * 60000);
+      const currentTime = brazilNow.toTimeString().slice(0, 5);
+      const todayDow = brazilNow.getDay(); // 0=Sun, 1=Mon ... 6=Sat
+      const currentDayStr = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'][todayDow];
+
       const categoriesWithStatus = categories.map(cat => {
+        const dayHours = allCategoryDayHours.filter(h => h.category_id === cat.id);
+
         let isOpen = true;
-        
-        if (cat.opening_time && cat.closing_time) {
+
+        if (dayHours.length > 0) {
+          // New per-day logic
+          const todayRow = dayHours.find(h => h.day_of_week === todayDow);
+          if (!todayRow) {
+            isOpen = true; // no restriction for today
+          } else if (todayRow.is_closed) {
+            isOpen = false;
+          } else if (todayRow.open_time && todayRow.close_time) {
+            const openT = todayRow.open_time.slice(0, 5);
+            const closeT = todayRow.close_time.slice(0, 5);
+            isOpen = currentTime >= openT && currentTime <= closeT;
+          }
+        } else if (cat.opening_time && cat.closing_time) {
+          // Legacy fallback
           const openTime = cat.opening_time.slice(0, 5);
           const closeTime = cat.closing_time.slice(0, 5);
-          
-          // Check time
-          if (currentTime < openTime || currentTime > closeTime) {
-            isOpen = false;
-          }
-          
-          // Check day
-          if (cat.available_days && !cat.available_days.includes(currentDay)) {
-            isOpen = false;
-          }
+          if (currentTime < openTime || currentTime > closeTime) isOpen = false;
+          if (cat.available_days && !cat.available_days.includes(currentDayStr)) isOpen = false;
         }
-        
+
         return { ...cat, isOpen };
       });
-      
+
       res.json({
         restaurant,
-        categories: categoriesWithStatus
+        categories: categoriesWithStatus,
+        restaurantHours
       });
       
     } catch (error) {

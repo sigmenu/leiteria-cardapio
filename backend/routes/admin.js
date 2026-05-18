@@ -54,6 +54,17 @@ router.put('/items/:id',
 );
 router.delete('/items/:id', adminController.deleteItem);
 
+// Maintenance
+router.post('/migrate-uploads', adminController.migrateUploads);
+
+// Restaurant hours
+router.get('/hours', adminController.getRestaurantHours);
+router.put('/hours', adminController.saveRestaurantHours);
+
+// Category day hours
+router.get('/categories/:categoryId/hours', adminController.getCategoryHours);
+router.put('/categories/:categoryId/hours', adminController.saveCategoryHours);
+
 // Settings
 router.get('/settings', adminController.getSettings);
 router.put('/settings', 

@@ -1,9 +1,10 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { 
-  FaHome, 
-  FaList, 
-  FaCog, 
+import {
+  FaHome,
+  FaList,
+  FaCog,
+  FaClock,
   FaSignOutAlt,
   FaExternalLinkAlt
 } from 'react-icons/fa'
@@ -21,6 +22,7 @@ export default function AdminLayout({ children }) {
   const menuItems = [
     { path: '/admin', icon: FaHome, label: 'Dashboard' },
     { path: '/admin/categories', icon: FaList, label: 'Categorias' },
+    { path: '/admin/hours', icon: FaClock, label: 'Horários' },
     { path: '/admin/settings', icon: FaCog, label: 'Configurações' }
   ]
   
