@@ -209,11 +209,10 @@ export default function Categories() {
     const dh = category.day_hours
     if (dh && dh.length > 0) {
       const DAY_NAMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
-      const open = dh.filter(d => !d.is_closed && d.open_time)
+      const open = dh.filter(d => !d.is_closed && d.open_time && d.close_time)
       const closed = dh.filter(d => d.is_closed)
       if (open.length === 0 && closed.length > 0) return 'Todos os dias: Fechado'
       if (open.length === 0) return null
-      // Get unique time slots
       const slots = [...new Set(open.map(d => `${d.open_time.slice(0,5)}–${d.close_time.slice(0,5)}`))]
       const dayList = open.map(d => DAY_NAMES[d.day_of_week]).join(', ')
       return slots.length === 1 ? `${dayList}: ${slots[0]}` : `${open.length} dias configurados`

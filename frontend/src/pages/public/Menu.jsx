@@ -26,7 +26,7 @@ function RestaurantFooter({ hours, primaryColor }) {
     if (!rows || rows.length === 0) return null
     if (rows.find(r => r.is_closed)) return 'closed'
     const slots = rows.filter(r => r.open_time && r.close_time)
-      .map(r => `${r.open_time.slice(0, 5)} – ${r.close_time.slice(0, 5)}`)
+      .map(r => `${r.open_time?.slice(0, 5)} – ${r.close_time?.slice(0, 5)}`)
     return slots.length ? slots : 'open'
   }
 
@@ -184,12 +184,12 @@ export default function PublicMenu() {
 
       {/* Categories Grid */}
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-2">
           {categories.map(category => (
             <div
               key={category.id}
               onClick={() => navigate(`/menu/${slug}/category/${category.id}`)}
-              className={`p-4 md:p-6 cursor-pointer transition-all hover:bg-gray-50 rounded-lg border-b border-gray-100 md:border-b-0 ${
+              className={`p-3 md:p-5 cursor-pointer transition-all hover:bg-gray-50 rounded-lg border-b border-gray-100 md:border-b-0 ${
                 !category.isOpen ? 'opacity-75' : ''
               }`}
             >
