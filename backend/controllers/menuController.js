@@ -63,16 +63,22 @@ const menuController = {
         let isOpen = true;
 
         if (dayHours.length > 0) {
-          // New per-day logic
-          const todayRow = dayHours.find(h => h.day_of_week === todayDow);
-          if (!todayRow) {
-            isOpen = true; // no restriction for today
-          } else if (todayRow.is_closed) {
+          const todayRows = dayHours.filter(h => h.day_of_week === todayDow);
+          if (todayRows.length === 0) {
+            isOpen = true;
+          } else if (todayRows.some(r => r.is_closed)) {
             isOpen = false;
-          } else if (todayRow.open_time && todayRow.close_time) {
-            const openT = todayRow.open_time.slice(0, 5);
-            const closeT = todayRow.close_time.slice(0, 5);
-            isOpen = currentTime >= openT && currentTime <= closeT;
+          } else {
+            const timed = todayRows.filter(r => r.open_time && r.close_time);
+            if (timed.length === 0) {
+              isOpen = true; // aberto o dia todo
+            } else {
+              isOpen = timed.some(r => {
+                const openT = r.open_time.slice(0, 5);
+                const closeT = r.close_time.slice(0, 5);
+                return currentTime >= openT && currentTime <= closeT;
+              });
+            }
           }
         } else if (cat.opening_time && cat.closing_time) {
           // Legacy fallback
